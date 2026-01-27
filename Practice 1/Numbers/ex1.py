@@ -1,0 +1,5 @@
+x = int(input('First num: ')) 
+y = int(input('Second num: '))
+print("x + y =", x - 2 * y)
+print('Oh sorry no, thats wrong one')
+print('This is the real x + y =', x + y)

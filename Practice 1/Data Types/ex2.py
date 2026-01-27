@@ -1,0 +1,6 @@
+x = int(17)
+y = int(5) # just numbers :)
+z = int(30)
+print(x,y, z)
+print("the sun of numbers is: ", x + y + z)
+print(type(x))

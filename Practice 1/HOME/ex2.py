@@ -1,0 +1,1 @@
+print("Hello wonderful world, full of joy and laugh!")
