@@ -1,3 +1,3 @@
 import re
 pattern = input()
-print(bool(re.compile("python").search(patter)))
+print(bool(re.compile("python").search(pattern)))
