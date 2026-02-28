@@ -16,6 +16,6 @@ print(parsed_data['name'])
 with open('user.json', 'w') as f:
     json.dump(user_data, f, indent=4)
 
-# with open('sample-data.json', 'r') as f:
-#     data = json.load(f)
-#     print(data)
+with open('sample-data.json', 'r') as f:
+    data = json.load(f)
+    print(data)
