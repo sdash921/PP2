@@ -1,0 +1,26 @@
+{
+    "metadata": {
+        "date": "12/05/2023",
+        "time": "14:35"
+    },
+    "items": [
+        {
+            "name": "ORGANIC BANANAS .......",
+            "price": 4.5
+        },
+        {
+            "name": "ALMOND MILK 1L .........",
+            "price": 7.2
+        },
+        {
+            "name": "WHOLE WHEAT BREAD ......",
+            "price": 3.25
+        },
+        {
+            "name": "AVOCADOS ...............",
+            "price": 6.0
+        }
+    ],
+    "total": 20.95,
+    "payment_method": "BANK CARD"
+}
