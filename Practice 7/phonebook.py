@@ -20,7 +20,6 @@ def import_from_csv(filename):
             with open(filename, mode='r', encoding='utf-8') as f:
                 reader = csv.DictReader(f)
                 for row in reader:
-                    cur.execute(
                         "INSERT INTO phonebook (first_name, phone_number) VALUES (%s, %s) ON CONFLICT DO NOTHING",
                         (row['first_name'], row['phone_number'])
                     )
@@ -30,8 +29,7 @@ def add_contact(name, phone):
     try:
         with connect() as conn:
             with conn.cursor() as cur:
-                cur.execute("INSERT INTO phonebook (first_name, phone_number) VALUES (%s, %s)", (name, phone))
-                conn.commit()
+                cur.execute("INSERT INTO phonebook (name,phone_number) VALUES (%s,%s)",(name,phone))
     except Exception as e:
         print(f"Error: {e}")
 
