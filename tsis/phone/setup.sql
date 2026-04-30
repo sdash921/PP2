@@ -1,23 +1,24 @@
 -- ============================================================
---  setup.sql
---  Run this ONE time to build the entire database.
---  It drops everything first so it is safe to re-run.
+-- setup.sql
 -- ============================================================
 
--- Drop in reverse dependency order
-DROP FUNCTION  IF EXISTS search_contacts(text)           CASCADE;
-DROP FUNCTION  IF EXISTS pagination(int, int)            CASCADE;
-DROP FUNCTION  IF EXISTS records(text)                   CASCADE;
+-- Убеждаемся, что работаем в нужной схеме
+SET search_path TO public;
+
+-- Drop в обратном порядке (сначала функции, потом таблицы)
+DROP FUNCTION IF EXISTS search_contacts(text) CASCADE;
+DROP FUNCTION IF EXISTS pagination(int, int) CASCADE;
+DROP FUNCTION IF EXISTS records(text) CASCADE;
 DROP PROCEDURE IF EXISTS move_to_group(varchar, varchar) CASCADE;
 DROP PROCEDURE IF EXISTS add_phone(varchar, varchar, varchar) CASCADE;
-DROP PROCEDURE IF EXISTS del_user(varchar)               CASCADE;
-DROP PROCEDURE IF EXISTS loophz(varchar[], varchar[])    CASCADE;
+DROP PROCEDURE IF EXISTS del_user(varchar) CASCADE;
+DROP PROCEDURE IF EXISTS loophz(varchar[], varchar[]) CASCADE;
 DROP PROCEDURE IF EXISTS upsert_u(varchar, varchar, varchar) CASCADE;
-DROP PROCEDURE IF EXISTS upsert_u(varchar, varchar)      CASCADE;
-DROP TABLE IF EXISTS phones    CASCADE;
+DROP PROCEDURE IF EXISTS upsert_u(varchar, varchar) CASCADE;
+
+DROP TABLE IF EXISTS phones CASCADE;
 DROP TABLE IF EXISTS phonebook CASCADE;
-DROP TABLE IF EXISTS contacts  CASCADE;
-DROP TABLE IF EXISTS groups    CASCADE;
+DROP TABLE IF EXISTS groups CASCADE;
 
 -- ── TABLES ──────────────────────────────────────────────────
 
@@ -46,7 +47,6 @@ CREATE TABLE phones (
 
 -- ── PROCEDURES ──────────────────────────────────────────────
 
--- Insert contact if not exists, then add the phone to phones table
 CREATE PROCEDURE upsert_u(p_name VARCHAR, p_phone VARCHAR, p_type VARCHAR DEFAULT 'mobile')
 LANGUAGE plpgsql AS $$
 DECLARE v_id INT;
@@ -62,7 +62,6 @@ BEGIN
 END;
 $$;
 
--- Bulk insert with validation: skips bad phones (letters) or bad names (digits)
 CREATE PROCEDURE loophz(p_user VARCHAR[], p_phone VARCHAR[])
 LANGUAGE plpgsql AS $$
 BEGIN
@@ -78,7 +77,6 @@ BEGIN
 END;
 $$;
 
--- Delete contact by username OR by phone number
 CREATE PROCEDURE del_user(p VARCHAR)
 LANGUAGE plpgsql AS $$
 BEGIN
@@ -89,7 +87,6 @@ BEGIN
 END;
 $$;
 
--- Add a phone number to an existing contact
 CREATE PROCEDURE add_phone(p_name VARCHAR, p_phone VARCHAR, p_type VARCHAR)
 LANGUAGE plpgsql AS $$
 DECLARE v_id INT;
@@ -100,11 +97,9 @@ BEGIN
         RETURN;
     END IF;
     INSERT INTO phones (contact_id, phone, type) VALUES (v_id, p_phone, p_type);
-    RAISE NOTICE 'Phone added to "%".', p_name;
 END;
 $$;
 
--- Move contact to a group; creates the group if it does not exist
 CREATE PROCEDURE move_to_group(p_name VARCHAR, p_group VARCHAR)
 LANGUAGE plpgsql AS $$
 DECLARE v_gid INT; v_cid INT;
@@ -112,27 +107,19 @@ BEGIN
     INSERT INTO groups (name) VALUES (p_group) ON CONFLICT (name) DO NOTHING;
     SELECT id INTO v_gid FROM groups    WHERE name     = p_group;
     SELECT id INTO v_cid FROM phonebook WHERE username = p_name;
+    
     IF v_cid IS NULL THEN
         RAISE NOTICE 'Contact "%" not found.', p_name;
         RETURN;
     END IF;
     UPDATE phonebook SET group_id = v_gid WHERE id = v_cid;
-    RAISE NOTICE 'Moved "%" to group "%".', p_name, p_group;
 END;
 $$;
 
 -- ── FUNCTIONS ───────────────────────────────────────────────
 
--- Paginated list of contacts (page-by-page browsing)
 CREATE FUNCTION pagination(lim INT, offs INT)
-RETURNS TABLE(
-    out_id       INT,
-    out_name     VARCHAR,
-    out_email    VARCHAR,
-    out_birthday DATE,
-    out_group    VARCHAR,
-    out_phones   TEXT
-)
+RETURNS TABLE(out_id INT, out_name VARCHAR, out_email VARCHAR, out_birthday DATE, out_group VARCHAR, out_phones TEXT)
 LANGUAGE plpgsql AS $$
 BEGIN
     RETURN QUERY
@@ -141,22 +128,14 @@ BEGIN
         FROM phonebook c
         LEFT JOIN groups g ON g.id = c.group_id
         LEFT JOIN phones p ON p.contact_id = c.id
-        GROUP BY c.id, c.username, c.email, c.birthday, g.name, c.created_at
+        GROUP BY c.id, c.username, c.email, c.birthday, g.name
         ORDER BY c.username
         LIMIT lim OFFSET offs;
 END;
 $$;
 
--- Search across name + email + all phone numbers at once
 CREATE FUNCTION search_contacts(p_query TEXT)
-RETURNS TABLE(
-    out_id       INT,
-    out_name     VARCHAR,
-    out_email    VARCHAR,
-    out_birthday DATE,
-    out_group    VARCHAR,
-    out_phones   TEXT
-)
+RETURNS TABLE(out_id INT, out_name VARCHAR, out_email VARCHAR, out_birthday DATE, out_group VARCHAR, out_phones TEXT)
 LANGUAGE plpgsql AS $$
 BEGIN
     RETURN QUERY
@@ -173,6 +152,3 @@ BEGIN
         ORDER BY c.id;
 END;
 $$;
-
--- Done
-SELECT 'Setup complete!' AS status;

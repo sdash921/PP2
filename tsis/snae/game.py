@@ -22,8 +22,12 @@ def save_settings(settings):
 def draw_grid(screen):
     for i in range(HEIGHT // CELL):
         for j in range(WIDTH // CELL):
+            # Draw grid lines with dots at intersections for a cleaner look
             if j != 0:
                 pygame.draw.rect(screen, colorGRAY, (i * CELL, j * CELL, CELL, CELL), 1)
+            # Add dots at grid intersections
+            if i < WIDTH // CELL and j < HEIGHT // CELL and j != 0:
+                pygame.draw.circle(screen, colorGRAY, (i * CELL, j * CELL), 2)
 
 # ── Point (original, unchanged) ──
 
@@ -85,10 +89,52 @@ class Snake:
                 return
 
     def draw(self, screen):
+        # Draw body segments first (with rounded corners style)
+        for i, segment in enumerate(self.body[1:], 1):
+            # Create a slightly smaller rectangle for each segment to show separation
+            rect_x = segment.x * CELL + 2
+            rect_y = segment.y * CELL + 2
+            rect_w = CELL - 4
+            rect_h = CELL - 4
+            
+            # Alternate shading for body segments (3D effect)
+            if i % 2 == 0:
+                pygame.draw.rect(screen, self.color, (rect_x, rect_y, rect_w, rect_h), border_radius=8)
+            else:
+                # Slightly lighter color for alternating segments
+                lighter_color = tuple(min(255, c + 30) for c in self.color)
+                pygame.draw.rect(screen, lighter_color, (rect_x, rect_y, rect_w, rect_h), border_radius=8)
+            
+            # Add outline for each segment
+            pygame.draw.rect(screen, colorBLACK, (rect_x, rect_y, rect_w, rect_h), 1, border_radius=8)
+        
+        # Draw head as a circle with eyes
         head = self.body[0]
-        pygame.draw.rect(screen, colorRED, (head.x * CELL, head.y * CELL, CELL, CELL))
-        for segment in self.body[1:]:
-            pygame.draw.rect(screen, self.color, (segment.x * CELL, segment.y * CELL, CELL, CELL))
+        center_x = head.x * CELL + CELL // 2
+        center_y = head.y * CELL + CELL // 2
+        radius = CELL // 2 - 2
+        
+        # Draw head circle
+        pygame.draw.circle(screen, colorRED, (center_x, center_y), radius)
+        
+        # Add eye outline
+        pygame.draw.circle(screen, colorBLACK, (center_x, center_y), radius, 2)
+        
+        # Draw eyes based on direction
+        eye_offset = 6
+        eye_size = 4
+        if self.dx == 1:  # moving right
+            pygame.draw.circle(screen, colorWHITE, (center_x + eye_offset, center_y - eye_offset), eye_size)
+            pygame.draw.circle(screen, colorWHITE, (center_x + eye_offset, center_y + eye_offset), eye_size)
+        elif self.dx == -1:  # moving left
+            pygame.draw.circle(screen, colorWHITE, (center_x - eye_offset, center_y - eye_offset), eye_size)
+            pygame.draw.circle(screen, colorWHITE, (center_x - eye_offset, center_y + eye_offset), eye_size)
+        elif self.dy == -1:  # moving up
+            pygame.draw.circle(screen, colorWHITE, (center_x - eye_offset, center_y - eye_offset), eye_size)
+            pygame.draw.circle(screen, colorWHITE, (center_x + eye_offset, center_y - eye_offset), eye_size)
+        else:  # moving down or default
+            pygame.draw.circle(screen, colorWHITE, (center_x - eye_offset, center_y + eye_offset), eye_size)
+            pygame.draw.circle(screen, colorWHITE, (center_x + eye_offset, center_y + eye_offset), eye_size)
 
     def check_collision(self, food, obstacles):
         head = self.body[0]
@@ -133,7 +179,11 @@ class Food:
 
     def draw(self, screen):
         color = self.POISON_COLOR if self.food_type == "poison" else self.NORMAL_COLORS[self.n]
-        pygame.draw.rect(screen, color, (self.pos.x * CELL, self.pos.y * CELL, CELL, CELL))
+        center_x = self.pos.x * CELL + CELL // 2
+        center_y = self.pos.y * CELL + CELL // 2
+        radius = CELL // 2 - 2
+        pygame.draw.circle(screen, color, (center_x, center_y), radius)
+        pygame.draw.circle(screen, colorWHITE, (center_x, center_y), radius, 2)
 
     def generate_random_pos(self, snake_body, obstacles=None):
         self._pick_type()
@@ -174,9 +224,18 @@ class PowerUp:
 
     def draw(self, screen):
         color = POWERUP_COLORS[self.kind]
-        rect = (self.pos.x * CELL + 4, self.pos.y * CELL + 4, CELL - 8, CELL - 8)
-        pygame.draw.rect(screen, color, rect)
-        pygame.draw.rect(screen, colorWHITE, rect, 2)
+        center_x = self.pos.x * CELL + CELL // 2
+        center_y = self.pos.y * CELL + CELL // 2
+        radius = CELL // 2 - 4
+        pygame.draw.circle(screen, color, (center_x, center_y), radius)
+        pygame.draw.circle(screen, colorWHITE, (center_x, center_y), radius, 2)
+        # Add a symbol inside based on type
+        if self.kind == "speed":
+            pygame.draw.line(screen, colorWHITE, (center_x - 5, center_y), (center_x + 5, center_y), 2)
+        elif self.kind == "slow":
+            pygame.draw.line(screen, colorWHITE, (center_x, center_y - 5), (center_x, center_y + 5), 2)
+        elif self.kind == "shield":
+            pygame.draw.circle(screen, colorWHITE, (center_x, center_y), radius - 4, 1)
 
     def is_expired(self):
         return pygame.time.get_ticks() - self.spawned_at > POWERUP_FIELD_TIME

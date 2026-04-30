@@ -10,7 +10,11 @@ from config import load_config
 
 
 def get_conn():
-    return psycopg2.connect(**load_config())
+    conn = psycopg2.connect(**load_config())
+    # Принудительная установка схемы public, чтобы база находила таблицы
+    with conn.cursor() as cur:
+        cur.execute("SET search_path TO public;")
+    return conn
 
 
 def print_row(row):
@@ -72,7 +76,7 @@ def check_setup():
         print("Check your database.ini credentials.")
 
 
-# ── 2. UPSERT  (from Practice 8) ─────────────────────────────────────────────
+# ── 2. UPSERT  (from Practice 8) ─────────────────────────────────────────────
 
 def upsert_contact():
     """Add a contact + phone. If username exists, just adds the phone."""
@@ -90,7 +94,7 @@ def upsert_contact():
         print(f"Error: {e}")
 
 
-# ── 3. BULK INSERT  (from Practice 8) ────────────────────────────────────────
+# ── 3. BULK INSERT  (from Practice 8) ────────────────────────────────────────
 
 def bulk_insert():
     """Insert many contacts at once. Invalid entries are skipped with a warning."""
@@ -116,7 +120,7 @@ def bulk_insert():
         print(f"Error: {e}")
 
 
-# ── 4. UPDATE  (from Practice 7) ─────────────────────────────────────────────
+# ── 4. UPDATE  (from Practice 7) ─────────────────────────────────────────────
 
 def update_contact():
     """Update username, email, or birthday of a contact."""
@@ -126,14 +130,13 @@ def update_contact():
     if choice not in field_map:
         print("Invalid.")
         return
-    field    = field_map[choice]
+    field   = field_map[choice]
     old_name = input("Current username: ").strip()
     new_val  = input(f"New {field}: ").strip()
 
     try:
         with get_conn() as conn:
             with conn.cursor() as cur:
-                # field comes from our own dict — no SQL injection possible
                 cur.execute(f"UPDATE phonebook SET {field}=%s WHERE username=%s",
                             (new_val, old_name))
                 changed = cur.rowcount
@@ -143,7 +146,7 @@ def update_contact():
         print(f"Error: {e}")
 
 
-# ── 5. ADD PHONE  (new — calls add_phone procedure) ──────────────────────────
+# ── 5. ADD PHONE  (new — calls add_phone procedure) ──────────────────────────
 
 def add_phone():
     """Add an extra phone number to an existing contact."""
@@ -163,7 +166,7 @@ def add_phone():
         print(f"Error: {e}")
 
 
-# ── 6. MOVE TO GROUP  (new — calls move_to_group procedure) ──────────────────
+# ── 6. MOVE TO GROUP  (new — calls move_to_group procedure) ──────────────────
 
 def move_to_group():
     """Move a contact to a group. Creates the group if it doesn't exist."""
@@ -182,7 +185,7 @@ def move_to_group():
         print(f"Error: {e}")
 
 
-# ── 7. QUERY  (from Practice 7 + sort) ───────────────────────────────────────
+# ── 7. QUERY  (from Practice 7 + sort) ───────────────────────────────────────
 
 def query_contacts():
     """Search by name / phone / email with sorting."""
@@ -192,7 +195,6 @@ def query_contacts():
     sort = {"1":"c.username","2":"c.birthday","3":"c.created_at"}.get(
             input("Choice: ").strip(), "c.username")
 
-    # Base query — same JOIN structure for all three modes
     base = f"""
         SELECT c.id, c.username, c.email, c.birthday, g.name,
                STRING_AGG(p.phone||' ('||COALESCE(p.type,'?')||')', ', ')
@@ -231,7 +233,7 @@ def query_contacts():
         print(f"Error: {e}")
 
 
-# ── 8. FILTER BY GROUP  (new) ─────────────────────────────────────────────────
+# ── 8. FILTER BY GROUP  (new) ─────────────────────────────────────────────────
 
 def filter_by_group():
     """Show contacts from one group."""
@@ -271,7 +273,7 @@ def filter_by_group():
         print(f"Error: {e}")
 
 
-# ── 9. FULL SEARCH  (new — calls search_contacts function) ───────────────────
+# ── 9. FULL SEARCH  (new — calls search_contacts function) ───────────────────
 
 def full_search():
     """Search name + email + all phone numbers at once."""
@@ -289,7 +291,7 @@ def full_search():
         print(f"Error: {e}")
 
 
-# ── 10. PAGINATED BROWSE  (from Practice 8 + next/prev loop) ─────────────────
+# ── 10. PAGINATED BROWSE  (from Practice 8 + next/prev loop) ─────────────────
 
 def paginated_browse():
     """Browse page by page. Commands: next / prev / quit"""
@@ -323,7 +325,7 @@ def paginated_browse():
         elif cmd == "quit": break
 
 
-# ── 11. DELETE  (from Practice 8) ────────────────────────────────────────────
+# ── 11. DELETE  (from Practice 8) ────────────────────────────────────────────
 
 def delete_contact():
     """Delete by username or phone number."""
@@ -347,7 +349,7 @@ def delete_contact():
         print(f"Error: {e}")
 
 
-# ── 12. CSV IMPORT  (from Practice 7, extended) ───────────────────────────────
+# ── 12. CSV IMPORT  (from Practice 7, extended) ───────────────────────────────
 
 def csv_import():
     """Import from CSV. Columns: username, phone, phone_type, email, birthday, group"""
@@ -415,7 +417,7 @@ def csv_import():
         print(f"Error: {e}")
 
 
-# ── 13. EXPORT JSON  (new) ────────────────────────────────────────────────────
+# ── 13. EXPORT JSON  (new) ────────────────────────────────────────────────────
 
 def export_json():
     """Export all contacts to a JSON file."""
@@ -446,7 +448,7 @@ def export_json():
         print(f"Error: {e}")
 
 
-# ── 14. IMPORT JSON  (new) ────────────────────────────────────────────────────
+# ── 14. IMPORT JSON  (new) ────────────────────────────────────────────────────
 
 def import_json():
     """Import contacts from a JSON file. Asks skip/overwrite on duplicates."""
