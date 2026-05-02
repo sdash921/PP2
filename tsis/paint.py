@@ -385,19 +385,15 @@ def drawfig(screen, index, start, end, width, color_mode, draw_mode):
 def drawLineBetween(screen, index, start, end, width, color_mode):
     """
     Draw a thick line segment between *start* and *end* by placing filled
-    circles along the path.  The color shifts subtly with *index* to give
-    the stroke a gradient feel.
+    circles along the path. Uses solid color based on color_mode without gradient.
     """
-    # Gradient offset: early points in the stroke are darker
-    c1 = max(0, min(255, 2 * index - 256))
-    c2 = max(0, min(255, 2 * index))
-
+    # Solid colors based on color_mode - no gradient
     if color_mode == 'blue':
-        color = (c1, c1, c2)
+        color = (0, 0, 255)
     elif color_mode == 'red':
-        color = (c2, c1, c1)
+        color = (255, 0, 0)
     elif color_mode == 'green':
-        color = (c1, c2, c1)
+        color = (0, 255, 0)
     else:  # 'erase'
         color = (0, 0, 0)
 
